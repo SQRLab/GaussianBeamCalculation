@@ -16,6 +16,7 @@ def extract_beam_parameters(z_list, x_list, power_list):
     # given a list of z values as well as a list of lists for x values and powers at each z,
     # calculates and prints the beam radius, beam waist location, and M for a gaussian beam.
     beam_radius_list = list()
+    beam_radius_list_err = list()
 
     for i in range(len(z_list)):
         # extract variables at this z value
@@ -31,12 +32,15 @@ def extract_beam_parameters(z_list, x_list, power_list):
 
         # Extract the fitted parameters
         power_min, power_max, beam_radius, beam_center = popt
+        perr = np.sqrt(np.diag(pcov))
+        power_min_err, power_max_err, beam_radius_err, beam_center_err = perr
 
         # Compare the data and the fit
         plt.plot(x_vals, power_vals, 'o', label='Data')
-        plt.plot(x_vals, modified_erf(x_vals, power_min, power_max , beam_radius, beam_center), '-', label='Fit')
+        x_for_plot = np.linspace(np.min(x_vals), np.max(x_vals), 500)
+        plt.plot(x_for_plot, modified_erf(x_for_plot, power_min, power_max , beam_radius, beam_center), '-', label='Fit')
         plt.title(f"Knife x Position vs. Power for z={z} cm")
-        plt.xlabel("Knife x Position (mm)")
+        plt.xlabel("Knife x Position (cm)")
         plt.ylabel("Power (mW)")
         plt.legend()
         plt.show()
@@ -45,13 +49,15 @@ def extract_beam_parameters(z_list, x_list, power_list):
         intensity = 2 * max(power_vals) / np.pi / (beam_radius ** 2) * np.exp(-2 * ((displacement) / beam_radius) ** 2)
         plt.plot(displacement, intensity)
         plt.title("Displacement vs. Intensity")
-        plt.xlabel("Displacement (mm)")
-        plt.ylabel("Intensity (mW/mm^2)")
+        plt.xlabel("Displacement (cm)")
+        plt.ylabel("Intensity (mW/cm^2)")
         plt.show()
 
-        beam_radius_list.append(beam_radius)
+        beam_radius_list.append(np.abs(beam_radius))
+        beam_radius_list_err.append(np.abs(beam_radius_err))
 
     print("Beam Radius List:", beam_radius_list)
+    print("Z Values: ", z_list)
 
     # Compare the data and the fit
     init_guess = [np.mean(beam_radius_list), np.mean(z_list), 1]
@@ -59,35 +65,39 @@ def extract_beam_parameters(z_list, x_list, power_list):
 
     # Extract the fitted parameters
     beam_radius, beam_waist_loc, m = popt
-    print("Beam Radius:", beam_radius, "mm")
-    print("Beam Waist Location:", beam_waist_loc, "mm")
-    print("M^2:", m ** 2)
-    print("Rayleigh Range:", np.pi * (beam_radius ** 2) / (m ** 2) / (397e-6), "mm")
-    print("Divergence Angle:", (m ** 2) * (397e-6) / np.pi / beam_radius * 360 / (2 * np.pi), "degrees")
+    perr = np.sqrt(np.diag(pcov))
+    beam_rad_err, beam_waist_loc_err, m_err = perr
+    print("Beam Radius:", beam_radius, "±", beam_rad_err, "cm")
+    print("Beam Waist Location:", beam_waist_loc, "±", beam_waist_loc_err, "cm")
+    print("M^2:", m ** 2, "±", 2*m*m_err)
+    print("Rayleigh Range:", np.pi * (beam_radius ** 2) / (m ** 2) / (397e-6), "±", np.pi/(397e-6)*np.sqrt((2*beam_radius*beam_rad_err/m**2)**2+(beam_radius**2*2*m_err/m**2)**2),"cm") #need to add error
+    print("Divergence Angle:", (m ** 2) * (397e-6) / np.pi / beam_radius * 360 / (2 * np.pi), "±", 180/np.pi**2* (397e-6)*np.sqrt((2*m*m_err/beam_radius)**2+(m**2/beam_radius**2*beam_rad_err)**2),"degrees") #need to add error
 
     # Plot the data and fit
-    plt.plot(z_list, beam_radius_list, 'o', label='Data')
-    z = np.arange(np.min(z_list), np.max(z_list), 1)
+    plt.errorbar(z_list, beam_radius_list, beam_radius_list_err, fmt='o', label='Data')
+    z = np.linspace(np.min(z_list), np.max(z_list), 100)
     plt.plot(z, gaussian_beam_fn(z, beam_radius, beam_waist_loc, m), '-', label='Fit')
     plt.title("z-coordinate vs. Beam Radius")
-    plt.xlabel("z-coordinate (mm)")
-    plt.ylabel("Beam Radius (mm)")
+    plt.xlabel("z-coordinate (cm)")
+    plt.ylabel("Beam Radius (cm)")
+    plt.legend()
     plt.show()
-    return beam_radius, beam_waist_loc, m
+    return beam_radius, beam_waist_loc, m, beam_rad_err, beam_waist_loc_err, m_err
 
 
 if __name__ == '__main__':
-    filepath = "C:/Users/rlhaa/Desktop/School/UW REU/lens_data_06262026.csv"
+    filepath = "C:/Users/rlhaa/Desktop/School/UW REU/lens_data_06302026.csv"
     # read in data using the data frame
     df = pd.DataFrame(pd.read_csv(f"{filepath}"))
     # compress table so each entry corresponds to list of values for a given z
-    df = df.groupby("z (cm)")[["x (cm)", "Intensity (microW)"]].agg(list).reset_index()
+    df = df.groupby("z (cm)")[["x (cm)", "Intensity (mW)"]].agg(list).reset_index()
+    print(df)
     z_list = df["z (cm)"].apply(np.array).to_numpy()
     print(z_list)
     x_list = df["x (cm)"].apply(np.array).to_numpy()
     print(x_list)
-    power_list = df["Intensity (microW)"].apply(np.array).to_numpy()
+    power_list = df["Intensity (mW)"].apply(np.array).to_numpy()
     print(power_list)
     
-    beam_radius, beam_waist_loc, m = extract_beam_parameters(z_list, x_list, power_list)
+    beam_radius, beam_waist_loc, m, beam_rad_err, beam_waist_loc_err, m_err = extract_beam_parameters(z_list, x_list, power_list)
     
