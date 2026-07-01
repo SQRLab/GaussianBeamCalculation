@@ -3,12 +3,13 @@ import scipy.optimize as opt
 import matplotlib.pyplot as plt
 import pandas as pd
 from scipy.special import erf 
+from functools import partial
 
 def modified_erf(x, power_min, power_max, beam_radius, beam_center):
     # function describing beam intensity
     return power_min + power_max/2 * (1-erf(np.sqrt(2) * (x - beam_center)/beam_radius))
 
-def gaussian_beam_fn(z, beam_radius, beam_waist_loc, m, laser_wavelength=650*10**-9):
+def gaussian_beam_fn(z, beam_radius, beam_waist_loc, m, laser_wavelength):
     # gaussian beam equation
     return np.sqrt((beam_radius ** 2) * (1 + ((z - beam_waist_loc) ** 2) * (((m ** 2) * (laser_wavelength) / np.pi / (beam_radius ** 2)) ** 2)))
 
@@ -60,9 +61,12 @@ def extract_beam_parameters(z_list, x_list, power_list, laser_wavelength):
     z_list = z_list*10**-2
     print("Z Values: ", z_list)
 
+    # define fit function with set laser_wavelength (have to do this way bc of how curve_fit works)
+    fixed_wavelength_gaussian = partial(gaussian_beam_fn, laser_wavelength=laser_wavelength)
+    
     # Compare the data and the fit
     init_guess = [np.mean(beam_radius_list), np.mean(z_list), 1]
-    popt, pcov = opt.curve_fit(gaussian_beam_fn, z_list, beam_radius_list, p0=init_guess)
+    popt, pcov = opt.curve_fit(fixed_wavelength_gaussian, z_list, beam_radius_list, p0=init_guess)
 
     # Extract the fitted parameters
     beam_radius, beam_waist_loc, m = popt
@@ -77,7 +81,7 @@ def extract_beam_parameters(z_list, x_list, power_list, laser_wavelength):
     # Plot the data and fit
     plt.errorbar(z_list, beam_radius_list, beam_radius_list_err, fmt='o', label='Data')
     z = np.linspace(np.min(z_list), np.max(z_list), 100)
-    plt.plot(z, gaussian_beam_fn(z, beam_radius, beam_waist_loc, m), '-', label='Fit')
+    plt.plot(z, fixed_wavelength_gaussian(z, beam_radius, beam_waist_loc, m), '-', label='Fit')
     plt.title("z-coordinate vs. Beam Radius")
     plt.xlabel("z-coordinate (m)")
     plt.ylabel("Beam Radius (m)")
