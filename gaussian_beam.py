@@ -8,11 +8,11 @@ def modified_erf(x, power_min, power_max, beam_radius, beam_center):
     # function describing beam intensity
     return power_min + power_max/2 * (1-erf(np.sqrt(2) * (x - beam_center)/beam_radius))
 
-def gaussian_beam_fn(z, beam_radius, beam_waist_loc, m):
+def gaussian_beam_fn(z, beam_radius, beam_waist_loc, m, laser_wavelength=650*10**-9):
     # gaussian beam equation
-    return np.sqrt((beam_radius ** 2) * (1 + ((z - beam_waist_loc) ** 2) * (((m ** 2) * (397e-6) / np.pi / (beam_radius ** 2)) ** 2)))
+    return np.sqrt((beam_radius ** 2) * (1 + ((z - beam_waist_loc) ** 2) * (((m ** 2) * (laser_wavelength) / np.pi / (beam_radius ** 2)) ** 2)))
 
-def extract_beam_parameters(z_list, x_list, power_list):
+def extract_beam_parameters(z_list, x_list, power_list, laser_wavelength):
     # given a list of z values as well as a list of lists for x values and powers at each z,
     # calculates and prints the beam radius, beam waist location, and M for a gaussian beam.
     beam_radius_list = list()
@@ -49,14 +49,15 @@ def extract_beam_parameters(z_list, x_list, power_list):
         intensity = 2 * max(power_vals) / np.pi / (beam_radius ** 2) * np.exp(-2 * ((displacement) / beam_radius) ** 2)
         plt.plot(displacement, intensity)
         plt.title("Displacement vs. Intensity")
-        plt.xlabel("Displacement (cm)")
+        plt.xlabel("Displacement (m)")
         plt.ylabel("Intensity (mW/cm^2)")
         plt.show()
 
-        beam_radius_list.append(np.abs(beam_radius))
-        beam_radius_list_err.append(np.abs(beam_radius_err))
+        beam_radius_list.append(np.abs(beam_radius*10**-2)) #convert to meters
+        beam_radius_list_err.append(np.abs(beam_radius_err*10**-2)) #convert to meters
 
     print("Beam Radius List:", beam_radius_list)
+    z_list = z_list*10**-2
     print("Z Values: ", z_list)
 
     # Compare the data and the fit
@@ -67,25 +68,28 @@ def extract_beam_parameters(z_list, x_list, power_list):
     beam_radius, beam_waist_loc, m = popt
     perr = np.sqrt(np.diag(pcov))
     beam_rad_err, beam_waist_loc_err, m_err = perr
-    print("Beam Radius:", beam_radius, "±", beam_rad_err, "cm")
-    print("Beam Waist Location:", beam_waist_loc, "±", beam_waist_loc_err, "cm")
+    print("Beam Radius:", beam_radius, "±", beam_rad_err, "m")
+    print("Beam Waist Location:", beam_waist_loc, "±", beam_waist_loc_err, "m")
     print("M^2:", m ** 2, "±", 2*m*m_err)
-    print("Rayleigh Range:", np.pi * (beam_radius ** 2) / (m ** 2) / (397e-6), "±", np.pi/(397e-6)*np.sqrt((2*beam_radius*beam_rad_err/m**2)**2+(beam_radius**2*2*m_err/m**2)**2),"cm") #need to add error
-    print("Divergence Angle:", (m ** 2) * (397e-6) / np.pi / beam_radius * 360 / (2 * np.pi), "±", 180/np.pi**2* (397e-6)*np.sqrt((2*m*m_err/beam_radius)**2+(m**2/beam_radius**2*beam_rad_err)**2),"degrees") #need to add error
+    print("Rayleigh Range:", np.pi * (beam_radius ** 2) / (m ** 2) / (laser_wavelength), "±", np.pi/(laser_wavelength)*np.sqrt((2*beam_radius*beam_rad_err/m**2)**2+(beam_radius**2*2*m_err/m**2)**2),"m")
+    print("Divergence Angle:", (m ** 2) * (laser_wavelength) / np.pi / beam_radius * 360 / (2 * np.pi), "±", 180/np.pi**2* (laser_wavelength)*np.sqrt((2*m*m_err/beam_radius)**2+(m**2/beam_radius**2*beam_rad_err)**2),"degrees")
 
     # Plot the data and fit
     plt.errorbar(z_list, beam_radius_list, beam_radius_list_err, fmt='o', label='Data')
     z = np.linspace(np.min(z_list), np.max(z_list), 100)
     plt.plot(z, gaussian_beam_fn(z, beam_radius, beam_waist_loc, m), '-', label='Fit')
     plt.title("z-coordinate vs. Beam Radius")
-    plt.xlabel("z-coordinate (cm)")
-    plt.ylabel("Beam Radius (cm)")
+    plt.xlabel("z-coordinate (m)")
+    plt.ylabel("Beam Radius (m)")
     plt.legend()
     plt.show()
+    plt.savefig("Beam Fitted")
+
     return beam_radius, beam_waist_loc, m, beam_rad_err, beam_waist_loc_err, m_err
 
 
 if __name__ == '__main__':
+    laser_wavelength = 650*10**-9
     filepath = "C:/Users/rlhaa/Desktop/School/UW REU/lens_data_06302026.csv"
     # read in data using the data frame
     df = pd.DataFrame(pd.read_csv(f"{filepath}"))
@@ -99,5 +103,5 @@ if __name__ == '__main__':
     power_list = df["Intensity (mW)"].apply(np.array).to_numpy()
     print(power_list)
     
-    beam_radius, beam_waist_loc, m, beam_rad_err, beam_waist_loc_err, m_err = extract_beam_parameters(z_list, x_list, power_list)
+    beam_radius, beam_waist_loc, m, beam_rad_err, beam_waist_loc_err, m_err = extract_beam_parameters(z_list, x_list, power_list, laser_wavelength)
     
