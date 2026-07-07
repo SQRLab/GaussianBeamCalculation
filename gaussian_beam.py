@@ -103,13 +103,13 @@ if __name__ == '__main__':
     # read in data using the data frame
     df = pd.DataFrame(pd.read_csv(f"{filepath}"))
     # compress table so each entry corresponds to list of values for a given z
-    df = df.groupby("z (cm)")[["x (cm)", "Power (μW)"]].agg(list).reset_index()
+    df = df.groupby("z (cm)")[["x (cm)", "Power (mW)"]].agg(list).reset_index()
     print(df)
     z_list = df["z (cm)"].apply(np.array).to_numpy()
     print(z_list)
     x_list = df["x (cm)"].apply(np.array).to_numpy()
     print(x_list)
-    power_list = df["Power (μW)"].apply(np.array).to_numpy()
+    power_list = df["Power (mW)"].apply(np.array).to_numpy()
     print(power_list)
     
     beam_radius, beam_waist_loc, m, beam_rad_err, beam_waist_loc_err, m_err = extract_beam_parameters(z_list, x_list, power_list, laser_wavelength)
