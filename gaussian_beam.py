@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from scipy.special import erf 
 from functools import partial
+import os
 
 def modified_erf(x, power_min, power_max, beam_radius, beam_center):
     # function describing beam intensity
@@ -11,6 +12,7 @@ def modified_erf(x, power_min, power_max, beam_radius, beam_center):
 
 def gaussian_beam_fn(z, beam_radius, beam_waist_loc, m, laser_wavelength):
     # gaussian beam equation
+    # Saleh & Teich Fundamentals of Photonics equation 3.1 - 8
     return np.sqrt((beam_radius ** 2) * (1 + ((z - beam_waist_loc) ** 2) * (((m ** 2) * (laser_wavelength) / np.pi / (beam_radius ** 2)) ** 2)))
 
 def extract_beam_parameters(z_list, x_list, power_list, laser_wavelength):
@@ -94,17 +96,20 @@ def extract_beam_parameters(z_list, x_list, power_list, laser_wavelength):
 
 if __name__ == '__main__':
     laser_wavelength = 650*10**-9
-    filepath = "C:/Users/rlhaa/Desktop/School/UW REU/lens_data_06302026.csv"
+    # filepath for macs
+    filepath = os.path.expanduser("~/Desktop/REU/Data/07062026.csv")
+    # filepath for non-macs
+    #filepath = "C:/Users/rlhaa/Desktop/School/UW REU/lens_data_06302026.csv"
     # read in data using the data frame
     df = pd.DataFrame(pd.read_csv(f"{filepath}"))
     # compress table so each entry corresponds to list of values for a given z
-    df = df.groupby("z (cm)")[["x (cm)", "Intensity (mW)"]].agg(list).reset_index()
+    df = df.groupby("z (cm)")[["x (cm)", "Power (μW)"]].agg(list).reset_index()
     print(df)
     z_list = df["z (cm)"].apply(np.array).to_numpy()
     print(z_list)
     x_list = df["x (cm)"].apply(np.array).to_numpy()
     print(x_list)
-    power_list = df["Intensity (mW)"].apply(np.array).to_numpy()
+    power_list = df["Power (μW)"].apply(np.array).to_numpy()
     print(power_list)
     
     beam_radius, beam_waist_loc, m, beam_rad_err, beam_waist_loc_err, m_err = extract_beam_parameters(z_list, x_list, power_list, laser_wavelength)
