@@ -2,8 +2,6 @@ import numpy as np
 from gaussian_beam import GaussianBeam
 from fit_gaussian_beam_data import *
 
-# note that downstream of the beam is NEGATIVE (im fairly certain this is true...)
-
 delta = -0.026914794220628382 # because we cannot measure where the collimator lens is, we must adjust for this fact be iterating until the beam waist loc of the reconstructed beam is zero
 d_col = 3.5*10**-2 + delta # distance from fiberoptic pen beam to end of collimator
 d_lens_col = 3*10**-2 - delta # distance from end of collimator to lens
