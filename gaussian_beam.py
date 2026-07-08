@@ -1,142 +1,91 @@
 import numpy as np
-import scipy.optimize as opt
-import matplotlib.pyplot as plt
-import pandas as pd
-from scipy.special import erf 
-from functools import partial
-from scipy.stats import chi2
 
-def modified_erf(x, power_min, power_max, beam_radius, beam_center):
-    # function describing beam intensity
-    return power_min + power_max/2 * (1-erf(np.sqrt(2) * (x - beam_center)/beam_radius))
+# define the gaussian beam class
+# a Gaussian Beam object contains a laser wavelength, waist location, rayleigh range, beam quality factor, and errors for all but the laser wavelength
+class GaussianBeam:
+    def __init__(self, waist, waist_loc, m2, waist_err, waist_loc_err, m2_err, laser_wavelength):
+        """ This class is used to describe a Gaussian beam. 
+            
+            Parameters:
+                waist: the smallest radius (or waist) of the beam
+                waist_loc: location of the beam waist
+                m2: beam quality factor
+                waist_err: beam waist size uncertainity
+                waist_loc_err: beam waist location uncertainty
+                m2_err: beam quality factor uncertainty
+                laser_wavelength: the wavelength of the given laser
 
-def gaussian_beam_fn(z, beam_radius, beam_waist_loc, m, laser_wavelength):
-    # gaussian beam equation
-    return np.sqrt((beam_radius ** 2) * (1 + ((z - beam_waist_loc) ** 2) * (((m ** 2) * (laser_wavelength) / np.pi / (beam_radius ** 2)) ** 2)))
+        """
+        self.waist_loc = waist_loc
+        self.m2 = m2
+        self.wavelength = laser_wavelength
 
-def fit_quality(fit_func, input_vals, output_vals, output_err, fit_params):
-    # given a fit function and an experimental data set input_vals, output_vals, and output_err,
-    # determines the reduced chi squared and pte of the fit_params
-    yfit = fit_func(input_vals, *fit_params)
-    residuals = output_vals-yfit # calculate residuals;
+        self.waist_loc_err = waist_loc_err
+        self.m2_err = m2_err
 
-    # calculate and plot normalized residuals
-    norm_residuals = residuals/output_err
+        self.rayleigh_range = np.pi * (waist ** 2) / (self.m2) / (self.wavelength)
+        self.rayleigh_range_err = np.pi/(self.wavelength)*np.sqrt((2*waist*waist_err/m2)**2+(waist**2*m2_err/m2**(3/2))**2)
 
-    # Calculated chi_squared, reduced chi_squared, and PTE
-    chi_squared = np.sum(norm_residuals**2)
+    ## GETTERS ##    
+    def get_waist_loc(self):
+        return self.waist_loc
 
-    M = len(output_vals)
-    df = M-len(fit_params)
-    reduced_chi_squared = chi_squared/df
+    def get_waist_loc_err(self):
+        return self.waist_loc_err
 
-    PTE = 1 - chi2.cdf(chi_squared, df=df)
-    return PTE, reduced_chi_squared
+    def get_rayleigh_range(self):
+        return self.rayleigh_range
 
-def extract_beam_parameters(z_list, x_list, power_list, laser_wavelength, plot_xs=False):
-    # given a list of z values as well as a list of lists for x values and powers at each z,
-    # calculates and prints the beam radius, beam waist location, and M for a gaussian beam.
-    beam_radius_list = list()
-    beam_radius_list_err = list()
+    def get_rayleigh_range_err(self):
+        return self.rayleigh_range_err
 
-    for i in range(len(z_list)):
-        # extract variables at this z value
-        z = z_list[i]
-        x_vals = x_list[i]
-        power_vals = power_list[i]
+    def get_m2(self):
+        return self.m2
 
-        # Initial guesses for parameters
-        init_guess = [min(power_vals), max(power_vals), 1, np.mean(x_vals)]
-
-        # Fit the data
-        popt, pcov = opt.curve_fit(modified_erf, x_vals, power_vals, p0=init_guess)
-
-        # Extract the fitted parameters
-        power_min, power_max, beam_radius, beam_center = popt
-        perr = np.sqrt(np.diag(pcov))
-        power_min_err, power_max_err, beam_radius_err, beam_center_err = perr
-
-        displacement = np.arange(np.mean(x_vals) - 5 * beam_radius, np.mean(x_vals) + 5 * beam_radius, 0.01) - beam_center
-        intensity = 2 * max(power_vals) / np.pi / (beam_radius ** 2) * np.exp(-2 * ((displacement) / beam_radius) ** 2)
-
-
-        beam_radius_list.append(np.abs(beam_radius*10**-2)) #convert to meters
-        beam_radius_list_err.append(np.abs(beam_radius_err*10**-2)) #convert to meters
-        if plot_xs == True:
-            #Compare the data and the fit
-            plt.plot(x_vals, power_vals, 'o', label='Data')
-            x_for_plot = np.linspace(np.min(x_vals), np.max(x_vals), 500)
-            plt.plot(x_for_plot, modified_erf(x_for_plot, power_min, power_max , beam_radius, beam_center), '-', label='Fit')
-            plt.title(f"Knife x Position vs. Power for z={z} cm")
-            plt.xlabel("Knife x Position (cm)")
-            plt.ylabel("Power (mW)")
-            plt.legend()
-            plt.show()
-
-            plt.plot(displacement, intensity)
-            plt.title("Displacement vs. Intensity")
-            plt.xlabel("Displacement (m)")
-            plt.ylabel("Intensity (mW/cm^2)")
-            plt.show()
-
-
-    print("Beam Radius List:", beam_radius_list)
-    z_list = z_list*10**-2
-    print("Z Values: ", z_list)
-
-    # define fit function with set laser_wavelength (have to do this way bc of how curve_fit works)
-    fixed_wavelength_gaussian = partial(gaussian_beam_fn, laser_wavelength=laser_wavelength)
+    def get_m2_err(self):
+        return self.m2_err
     
-    # Compare the data and the fit
-    init_guess = [np.mean(beam_radius_list), np.mean(z_list), 1]
-    popt, pcov = opt.curve_fit(fixed_wavelength_gaussian, z_list, beam_radius_list, p0=init_guess)
-
-    # Extract the fitted parameters
-    beam_radius, beam_waist_loc, m = popt
-    perr = np.sqrt(np.diag(pcov))
-    beam_rad_err, beam_waist_loc_err, m_err = perr
-    print("Beam Radius:", beam_radius, "±", beam_rad_err, "m")
-    print("Beam Waist Location:", beam_waist_loc, "±", beam_waist_loc_err, "m")
-    print("M^2:", m ** 2, "±", 2*m*m_err)
-    print("Rayleigh Range:", np.pi * (beam_radius ** 2) / (m ** 2) / (laser_wavelength), "±", np.pi/(laser_wavelength)*np.sqrt((2*beam_radius*beam_rad_err/m**2)**2+(beam_radius**2*2*m_err/m**2)**2),"m")
-    print("Divergence Angle:", (m ** 2) * (laser_wavelength) / np.pi / beam_radius * 360 / (2 * np.pi), "±", 180/np.pi**2* (laser_wavelength)*np.sqrt((2*m*m_err/beam_radius)**2+(m**2/beam_radius**2*beam_rad_err)**2),"degrees")
-
-    # Plot the data and fit
-    plt.errorbar(z_list, beam_radius_list, beam_radius_list_err, fmt='o', label='Data')
-    z = np.linspace(np.min(z_list), np.max(z_list), 100)
-    plt.plot(z, fixed_wavelength_gaussian(z, *popt), '-', label='Fit')
-    plt.title("z-coordinate vs. Beam Radius")
-    plt.xlabel("z-coordinate (m)")
-    plt.ylabel("Beam Radius (m)")
-    plt.legend()
-    plt.show()
-    plt.savefig("Beam Fitted")
-
-    # determine quality of fit
-    PTE, reduced_chi2 = fit_quality(fixed_wavelength_gaussian, z_list, beam_radius_list, beam_radius_list_err, popt)
-    print("PTE", PTE)
-    print("Reduced Chi Squared", reduced_chi2)
-
-    return beam_radius, beam_waist_loc, m, beam_rad_err, beam_waist_loc_err, m_err
-
-
-if __name__ == '__main__':
-    laser_wavelength = 650*10**-9 # update me
-    filepath = "C:/Users/rlhaa/Desktop/School/UW REU/lens_data_06302026.csv" # update me
-
-    # read in data using the data frame
-    df = pd.DataFrame(pd.read_csv(f"{filepath}"))
-
-    # compress table so each entry corresponds to list of values for a given z
-    df = df.groupby("z (cm)")[["x (cm)", "Intensity (mW)"]].agg(list).reset_index()
-    print(df)
-    z_list = df["z (cm)"].apply(np.array).to_numpy()
-    print(z_list)
-    x_list = df["x (cm)"].apply(np.array).to_numpy()
-    print(x_list)
-    power_list = df["Intensity (mW)"].apply(np.array).to_numpy()
-    print(power_list)
+    def get_waist(self):
+        # calculates the waist size
+        return np.sqrt(self.rayleigh_range*self.wavelength*self.m2/np.pi)
     
-    beam_radius, beam_waist_loc, m, beam_rad_err, beam_waist_loc_err, m_err = extract_beam_parameters(z_list, x_list, power_list, laser_wavelength)
+    def get_waist_err(self):
+        # calculates the uncertainty in waist size
+        return np.sqrt(self.wavelength/np.pi)*np.sqrt((0.5*self.rayleigh_range_err*np.sqrt(self.m2/self.rayleigh_range))**2+(0.5*self.m2_err*np.sqrt(self.rayleigh_range/self.m2))**2)
+
+
+    ## SETTERS ##    
+    def set_waist_loc(self, loc):
+        self.waist_loc = loc
+
+    def set_waist_loc_err(self, loc_err):
+        self.waist_loc_err = loc_err
     
+    ## METHODS ##
+
+    def free_space(self, d, d_err):
+        # propogates beam through free space a distance d where distance is known within d_err
+        # for backwards propagation, use -d
+        self.waist_loc += d
+        self.waist_loc_err = np.sqrt((self.waist_loc_err)**2+(d_err)**2)
+
+    def lens(self, f):
+        # propogates beam through a lens with focal length f
+        # for backwards propagation, use -f
+        q = self.waist_loc + 1j*self.rayleigh_range
+        q_err = self.waist_loc_err + 1j*self.rayleigh_range_err
+        q_update = q/(-1/f*q+1)
+        q_update_err = q_err/(-1/f*q+1)**2
+
+        self.waist_loc = np.real(q_update)
+        self.waist_loc_err = np.real(q_update_err)
+        self.rayleigh_range = np.imag(q_update)
+        self.rayleigh_range_err = np.imag(q_update_err)
+
+    def print(self):
+        print("Beam waist", self.get_waist(), "±", self.get_waist_err())
+        print("Beam waist loc", self.get_waist_loc(), "±", self.get_waist_loc_err())
+        print("Rayleigh Range", self.get_rayleigh_range(), "±", self.get_rayleigh_range_err())
+        print("M^2", self.get_m2(), "±", self.get_m2_err())
+
 
