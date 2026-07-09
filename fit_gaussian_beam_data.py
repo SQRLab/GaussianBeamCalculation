@@ -135,7 +135,7 @@ def process_data(filepath, laser_wavelength, plot_xs=False):
     
     power_list = df["Intensity (mW)"].apply(np.array).to_numpy()
     
-    return extract_beam_parameters(z_list, x_list, power_list, laser_wavelength, plot_xs=False)
+    return extract_beam_parameters(z_list, x_list, power_list, laser_wavelength, plot_xs=plot_xs)
     
 
 if __name__ == '__main__':
