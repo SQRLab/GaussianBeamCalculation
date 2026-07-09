@@ -5,6 +5,7 @@ import pandas as pd
 from scipy.special import erf 
 from functools import partial
 from scipy.stats import chi2
+import os
 
 def modified_erf(x, power_min, power_max, beam_radius, beam_center):
     # function describing beam intensity

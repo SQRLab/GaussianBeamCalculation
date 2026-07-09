@@ -1,4 +1,5 @@
 import numpy as np
+import os
 from gaussian_beam import GaussianBeam
 from fit_gaussian_beam_data import *
 
