@@ -60,6 +60,8 @@ class GaussianBeam:
 
     def set_waist_loc_err(self, loc_err):
         self.waist_loc_err = loc_err
+    def set_m2(self, m2):
+        self.m2 = m2
     
     ## METHODS ##
 
@@ -83,9 +85,28 @@ class GaussianBeam:
         self.rayleigh_range_err = np.imag(q_update_err)
 
     def print(self):
+        # prints information about the beam
         print("Beam waist", self.get_waist(), "±", self.get_waist_err())
         print("Beam waist loc", self.get_waist_loc(), "±", self.get_waist_loc_err())
         print("Rayleigh Range", self.get_rayleigh_range(), "±", self.get_rayleigh_range_err())
         print("M^2", self.get_m2(), "±", self.get_m2_err())
+
+    def ABCD_matrix_list(self, list):
+        # given a list of ABCD matrices, updates the beam parameters
+        # assumes the first matrix is the first optical component, not the last
+        q = self.waist_loc + 1j*self.rayleigh_range
+        q_err = self.waist_loc_err + 1j*self.rayleigh_range_err
+
+        ABCD = np.identity(2)
+        for mat in list:
+            ABCD = np.matmul(mat, ABCD)
+        
+        q_update = (ABCD[0][0]*q+ABCD[0][1])/(ABCD[1][0]*q+ABCD[1][1])
+        q_update_err = (ABCD[0][0]*ABCD[1][1]-ABCD[0][1]*ABCD[1][0])*q_err/(ABCD[1][0]*q+ABCD[1][1])**2
+
+        self.waist_loc = np.real(q_update)
+        self.waist_loc_err = np.real(q_update_err)
+        self.rayleigh_range = np.imag(q_update)
+        self.rayleigh_range_err = np.imag(q_update_err)
 
 
