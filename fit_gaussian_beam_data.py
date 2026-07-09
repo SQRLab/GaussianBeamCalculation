@@ -89,7 +89,8 @@ def extract_beam_parameters(z_list, x_list, power_list, laser_wavelength, plot_x
     
     # Compare the data and the fit
     init_guess = [np.mean(beam_radius_list), np.mean(z_list), 1]
-    popt, pcov = opt.curve_fit(fixed_wavelength_gaussian, z_list, beam_radius_list, p0=init_guess)
+    bounds = ([-np.inf,-np.inf,1],[np.inf,np.inf,2])
+    popt, pcov = opt.curve_fit(fixed_wavelength_gaussian, z_list, beam_radius_list, p0=init_guess, bounds=bounds)
 
     # Extract the fitted parameters
     beam_waist, beam_waist_loc, m = popt
