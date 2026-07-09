@@ -112,7 +112,7 @@ def extract_beam_parameters(z_list, x_list, power_list, laser_wavelength, plot_x
     plt.ylabel("Beam Radius (m)")
     plt.legend()
     plt.show()
-    plt.savefig("Beam Fitted")
+    plt.savefig(f"Beam Fitted - {laser_wavelength}")
 
     # determine quality of fit
     PTE, reduced_chi2 = fit_quality(fixed_wavelength_gaussian, z_list, beam_radius_list, beam_radius_list_err, popt)
