@@ -129,19 +129,19 @@ def process_data(filepath, laser_wavelength, plot_xs=False):
     df = pd.DataFrame(pd.read_csv(f"{filepath}"))
 
     # compress table so each entry corresponds to list of values for a given z
-    df = df.groupby("z (cm)")[["x (cm)", "Intensity (mW)"]].agg(list).reset_index()
+    df = df.groupby("z (cm)")[["x (cm)", "Power (mW)"]].agg(list).reset_index()
     
     z_list = df["z (cm)"].apply(np.array).to_numpy()
     
     x_list = df["x (cm)"].apply(np.array).to_numpy()
     
-    power_list = df["Intensity (mW)"].apply(np.array).to_numpy()
+    power_list = df["Power (mW)"].apply(np.array).to_numpy()
     
     return extract_beam_parameters(z_list, x_list, power_list, laser_wavelength, plot_xs=plot_xs)
     
 
 if __name__ == '__main__':
-    laser_wavelength = 729*10**-9 # update me
-    filepath = "C:/Users/rlhaa/Desktop/UW REU/729nm_data/lens_data_compiled - 8.6cm lens to razor.csv" # update me
+    laser_wavelength = 397*10**-9 # update me
+    filepath = os.path.expanduser("~/Desktop/REU/Data/397--data_20cm.csv") # update me
 
     process_data(filepath, laser_wavelength, plot_xs=False)
