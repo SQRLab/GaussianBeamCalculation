@@ -13,5 +13,8 @@ This repository contains files used to determine beam parameters for experimenta
   - Allows construction of a GaussianBeam object
   - Propagate beam through optical components using provided methods
  
-## propogate_beam
+## propagate_beam
 - An example file that demonstrates how to use key functionalities of gaussian_beam and fit_gaussian_beam
+
+## plot_beam.ipynb
+- Implements various plotting functionality for a Gaussian Beam and a set of test lenses
