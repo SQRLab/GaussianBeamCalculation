@@ -89,7 +89,7 @@ def extract_beam_parameters(z_list, x_list, power_list, laser_wavelength, plot_x
     fixed_wavelength_gaussian = partial(gaussian_beam_fn, laser_wavelength=laser_wavelength)
     
     # Compare the data and the fit
-    init_guess = [np.mean(beam_radius_list), np.mean(z_list), 1]
+    init_guess = [np.min(beam_radius_list), np.mean(z_list), 1]
     bounds = ([-np.inf,-np.inf,1],[np.inf,np.inf,2])
     popt, pcov = opt.curve_fit(fixed_wavelength_gaussian, z_list, beam_radius_list, p0=init_guess, bounds=bounds)
 
@@ -112,8 +112,9 @@ def extract_beam_parameters(z_list, x_list, power_list, laser_wavelength, plot_x
     plt.xlabel("z-coordinate (m)")
     plt.ylabel("Beam Radius (m)")
     plt.legend()
+    plt.savefig(f"../Beam Fitted - {laser_wavelength*10**9}.png")
     plt.show()
-    plt.savefig(f"Beam Fitted - {laser_wavelength}")
+    
 
     # determine quality of fit
     PTE, reduced_chi2 = fit_quality(fixed_wavelength_gaussian, z_list, beam_radius_list, beam_radius_list_err, popt)
@@ -140,7 +141,7 @@ def process_data(filepath, laser_wavelength, plot_xs=False):
     
 
 if __name__ == '__main__':
-    laser_wavelength = 650*10**-9 # update me
-    filepath = "C:/Users/rlhaa/Desktop/School/UW REU/lens_data_06302026.csv" # update me
+    laser_wavelength = 729*10**-9 # update me
+    filepath = "C:/Users/rlhaa/Desktop/UW REU/729nm_data/lens_data_compiled - 8.6cm lens to razor.csv" # update me
 
     process_data(filepath, laser_wavelength, plot_xs=False)

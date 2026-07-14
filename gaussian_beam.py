@@ -52,7 +52,10 @@ class GaussianBeam:
     def get_waist_err(self):
         # calculates the uncertainty in waist size
         return np.sqrt(self.wavelength/np.pi)*np.sqrt((0.5*self.rayleigh_range_err*np.sqrt(self.m2/self.rayleigh_range))**2+(0.5*self.m2_err*np.sqrt(self.rayleigh_range/self.m2))**2)
-
+    
+    def get_beam_params(self):
+        # returns beam params used to construct a new beam
+        return self.get_waist(), self.get_waist_loc(),  self.get_m2(),  self.get_waist_err(),  self.get_waist_loc_err(),  self.get_m2_err()
 
     ## SETTERS ##    
     def set_waist_loc(self, loc):
