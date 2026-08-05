@@ -73,7 +73,6 @@ def extract_beam_parameters(z_list, x_list, power_list, laser_wavelength, plot_x
             plt.ylabel("Power (mW)")
             plt.legend()
             plt.show()
-
             plt.plot(displacement, intensity)
             plt.title("Displacement vs. Intensity")
             plt.xlabel("Displacement (m)")
@@ -105,14 +104,16 @@ def extract_beam_parameters(z_list, x_list, power_list, laser_wavelength, plot_x
     print("Divergence Angle:", (m ** 2) * (laser_wavelength) / np.pi / beam_radius * 360 / (2 * np.pi), "±", 180/np.pi**2* (laser_wavelength)*np.sqrt((2*m*m_err/beam_waist)**2+(m**2/beam_waist**2*beam_waist_err)**2),"degrees")
     
     # Plot the data and fit
-    plt.errorbar(z_list, beam_radius_list, beam_radius_list_err, fmt='o', label='Data')
+    plt.errorbar(z_list*10**2, [rad*10**6 for rad in beam_radius_list], [rad_err*10**6 for rad_err in beam_radius_list_err], fmt='o', label='Data')
     z = np.linspace(np.min(z_list), np.max(z_list), 100)
-    plt.plot(z, fixed_wavelength_gaussian(z, *popt), '-', label='Fit')
+    plt.plot(z*10**2, fixed_wavelength_gaussian(z, *popt)*10**6, '-', label='Fit')
     plt.title("z-coordinate vs. Beam Radius")
-    plt.xlabel("z-coordinate (m)")
-    plt.ylabel("Beam Radius (m)")
+    plt.xlabel("z-coordinate (cm)")
+    plt.ylabel(r"Beam Radius ($\mu$m)")
     plt.legend()
     plt.savefig(f"../Beam Fitted - {laser_wavelength*10**9}.png")
+    plt.savefig(f"Beam Fitted - {laser_wavelength*10**9}.png")
+    plt.savefig(f"Beam Fitted - {laser_wavelength*10**9}.pdf")
     plt.show()
     
 
