@@ -71,19 +71,19 @@ class GaussianBeam:
     def free_space(self, d, d_err):
         # propogates beam through free space a distance d where distance is known within d_err
         # for backwards propagation, use -d
-        self.waist_loc += d
+        self.waist_loc -= d
         self.waist_loc_err = np.sqrt((self.waist_loc_err)**2+(d_err)**2)
 
     def lens(self, f):
         # propogates beam through a lens with focal length f
         # for backwards propagation, use -f
-        q = self.waist_loc + 1j*self.rayleigh_range
-        q_err = self.waist_loc_err + 1j*self.rayleigh_range_err
+        q = -self.waist_loc + 1j*self.rayleigh_range
+        q_err = -self.waist_loc_err + 1j*self.rayleigh_range_err
         q_update = q/(-1/f*q+1)
         q_update_err = q_err/(-1/f*q+1)**2
 
-        self.waist_loc = np.real(q_update)
-        self.waist_loc_err = np.real(q_update_err)
+        self.waist_loc = -np.real(q_update)
+        self.waist_loc_err = -np.real(q_update_err)
         self.rayleigh_range = np.imag(q_update)
         self.rayleigh_range_err = np.imag(q_update_err)
 
@@ -97,8 +97,8 @@ class GaussianBeam:
     def ABCD_matrix_list(self, list):
         # given a list of ABCD matrices, updates the beam parameters
         # assumes the first matrix is the first optical component, not the last
-        q = self.waist_loc + 1j*self.rayleigh_range
-        q_err = self.waist_loc_err + 1j*self.rayleigh_range_err
+        q = -self.waist_loc + 1j*self.rayleigh_range
+        q_err = -self.waist_loc_err + 1j*self.rayleigh_range_err
 
         ABCD = np.identity(2)
         for mat in list:
@@ -107,8 +107,8 @@ class GaussianBeam:
         q_update = (ABCD[0][0]*q+ABCD[0][1])/(ABCD[1][0]*q+ABCD[1][1])
         q_update_err = (ABCD[0][0]*ABCD[1][1]-ABCD[0][1]*ABCD[1][0])*q_err/(ABCD[1][0]*q+ABCD[1][1])**2
 
-        self.waist_loc = np.real(q_update)
-        self.waist_loc_err = np.real(q_update_err)
+        self.waist_loc = -np.real(q_update)
+        self.waist_loc_err = -np.real(q_update_err)
         self.rayleigh_range = np.imag(q_update)
         self.rayleigh_range_err = np.imag(q_update_err)
 
