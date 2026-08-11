@@ -3,5 +3,6 @@
 *.ipynb_checkpoints
 
 propagate_beam_ria.py
+plot_beam_ria.ipynb
 
 *729nm_figs
